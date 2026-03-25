@@ -4,8 +4,6 @@ import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 
 const STEPS = [
-  'Connecting to ASYCUDA system',
-  'Fetching R-Number application',
   'Extracting BL Number',
   'Checking BL with Tradian',
   'Verifying BL in E-Customs',

@@ -19,7 +19,7 @@ export default function App() {
                 M
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white leading-tight">ASYCUDA Write-Off Portal</h1>
+                <h1 className="text-xl font-bold text-white leading-tight">Manifest Write-Off Portal</h1>
                 <p className="text-xs text-blue-100">Maldives Customs Service</p>
               </div>
             </div>

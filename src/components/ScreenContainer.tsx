@@ -2,12 +2,6 @@ import React from 'react';
 import { useAppContext } from '../context/AppContext';
 import { S1Entry } from './screens/S1Entry';
 import { S2Validating } from './screens/S2Validating';
-import { E1AyscudaDown } from './screens/E1AyscudaDown';
-import { E2RNotFound } from './screens/E2RNotFound';
-import { E3NotAssessed } from './screens/E3NotAssessed';
-import { E4FormLocked } from './screens/E4FormLocked';
-import { E5InsufficientFunds } from './screens/E5InsufficientFunds';
-import { E6AccountMismatch } from './screens/E6AccountMismatch';
 import { S3BLNotFound } from './screens/S3BLNotFound';
 import { S4FieldMismatch } from './screens/S4FieldMismatch';
 import { S5Success } from './screens/S5Success';
@@ -27,12 +21,6 @@ export const ScreenContainer: React.FC = () => {
   switch (state.status) {
     case 'idle': return <S1Entry />;
     case 'loading': return <S2Validating />;
-    case 'asycuda_down': return <E1AyscudaDown />;
-    case 'r_not_found': return <E2RNotFound />;
-    case 'not_assessed': return <E3NotAssessed />;
-    case 'form_locked': return <E4FormLocked />;
-    case 'insufficient_funds': return <E5InsufficientFunds />;
-    case 'account_mismatch': return <E6AccountMismatch />;
     case 'bl_not_found': return <S3BLNotFound />;
     case 'field_mismatch': return <S4FieldMismatch />;
     case 'write_off_success': return <S5Success />;

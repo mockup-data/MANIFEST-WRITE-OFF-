@@ -138,8 +138,17 @@ export const OfficerPending: React.FC = () => {
                       <div className={`p-2 rounded-lg ${doc.type === 'pdf' ? 'bg-red-50 text-red-600' : 'bg-blue-50 text-blue-600'}`}>
                         {doc.type === 'pdf' ? <FileText size={20} /> : <ImageIcon size={20} />}
                       </div>
-                      <div className="overflow-hidden">
-                        <p className="text-sm font-medium text-gray-900 truncate" title={doc.name}>{doc.name}</p>
+                      <div className="overflow-hidden flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-gray-900 truncate" title={doc.name}>{doc.name}</p>
+                          <button 
+                            onClick={() => window.open(doc.url === '#' ? 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf' : doc.url, '_blank')}
+                            className="text-[var(--primary)] hover:underline text-[10px] font-bold whitespace-nowrap flex items-center gap-0.5"
+                          >
+                            <ExternalLink size={10} />
+                            View
+                          </button>
+                        </div>
                         <p className="text-[10px] text-gray-500 uppercase font-bold tracking-tight">{doc.type}</p>
                       </div>
                     </div>

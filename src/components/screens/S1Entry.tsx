@@ -13,6 +13,7 @@ const PORTS = [
 export const S1Entry: React.FC = () => {
   const { state, updateState } = useAppContext();
   const [rNumber, setRNumber] = useState(state.rNumber);
+  const [blNumber, setBlNumber] = useState(state.blNumber);
   const [port, setPort] = useState(state.port);
   const [vesselName, setVesselName] = useState(state.vesselName);
   const [deferredPaymentAccount, setDeferredPaymentAccount] = useState(state.deferredPaymentAccount);
@@ -20,8 +21,14 @@ export const S1Entry: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!rNumber.trim() || !port || !vesselName.trim() || !deferredPaymentAccount.trim()) {
+    if (!rNumber.trim() || !blNumber.trim() || !port || !vesselName.trim() || !deferredPaymentAccount.trim()) {
       setError('Please fill in all required fields.');
+      return;
+    }
+
+    // Strict R-Number format: R followed by 4 digits, a slash, and a 4-digit year
+    if (!/^R\d{4}\/\d{4}$/.test(rNumber.trim())) {
+      setError('R-Number must follow the format R****/YEAR (e.g., R0001/2024).');
       return;
     }
 
@@ -32,6 +39,7 @@ export const S1Entry: React.FC = () => {
     
     updateState({ 
       rNumber: rNumber.trim(), 
+      blNumber: blNumber.trim(),
       port,
       vesselName: vesselName.trim(),
       deferredPaymentAccount: deferredPaymentAccount.trim(),
@@ -49,35 +57,51 @@ export const S1Entry: React.FC = () => {
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="rNumber" className="block text-sm font-medium text-gray-700 mb-1">
-                R-Number
-              </label>
-              <input
-                type="text"
-                id="rNumber"
-                value={rNumber}
-                onChange={(e) => setRNumber(e.target.value)}
-                placeholder="e.g. R-2024-0001"
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none transition-all"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="rNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                  R-Number
+                </label>
+                <input
+                  type="text"
+                  id="rNumber"
+                  value={rNumber}
+                  onChange={(e) => setRNumber(e.target.value)}
+                  placeholder="e.g. R0001/2024"
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="port" className="block text-sm font-medium text-gray-700 mb-1">
+                  Port
+                </label>
+                <select
+                  id="port"
+                  value={port}
+                  onChange={(e) => setPort(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none transition-all bg-white"
+                >
+                  <option value="" disabled>Select a port</option>
+                  {PORTS.map(p => (
+                    <option key={p} value={p}>{p}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div>
-              <label htmlFor="port" className="block text-sm font-medium text-gray-700 mb-1">
-                Port
+              <label htmlFor="blNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                BL Number
               </label>
-              <select
-                id="port"
-                value={port}
-                onChange={(e) => setPort(e.target.value)}
-                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none transition-all bg-white"
-              >
-                <option value="" disabled>Select a port</option>
-                {PORTS.map(p => (
-                  <option key={p} value={p}>{p}</option>
-                ))}
-              </select>
+              <input
+                type="text"
+                id="blNumber"
+                value={blNumber}
+                onChange={(e) => setBlNumber(e.target.value)}
+                placeholder="e.g. BL-998877"
+                className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none transition-all"
+              />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -122,7 +146,7 @@ export const S1Entry: React.FC = () => {
 
             <div className="bg-blue-50 text-blue-800 p-4 rounded-lg text-sm flex gap-3">
               <div className="mt-0.5">ℹ️</div>
-              <p>R-Number must match the port and year of the original manifest application.</p>
+              <p>R-Number must follow the format R****/YEAR (e.g., R0001/2024) and match the port of the original manifest application.</p>
             </div>
 
             <button

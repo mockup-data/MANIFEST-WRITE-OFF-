@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { useAppContext, AppStatus } from '../context/AppContext';
 
 const statuses: AppStatus[] = [
-  'idle', 'loading', 'asycuda_down', 'r_not_found', 'not_assessed', 'form_locked',
-  'insufficient_funds', 'account_mismatch', 'bl_not_found', 'field_mismatch',
+  'idle', 'loading', 'bl_not_found', 'field_mismatch',
   'write_off_success', 'ecustoms_error', 'amendment_form', 'pending_review',
   'rejected', 'payment_ready', 'finalizing', 'finalized', 'bl_cancel_form',
   'officer_history', 'officer_pending'

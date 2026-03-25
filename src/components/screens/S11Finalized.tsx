@@ -74,14 +74,14 @@ export const S11Finalized: React.FC = () => {
             <div>
               <h3 className="text-lg font-bold text-blue-900 mb-2">Next Steps</h3>
               <p className="text-blue-800 mb-4">
-                The manifest write-off process is complete. The updated status has been synchronized with ASYCUDA and E-Customs. You can now proceed with cargo clearance.
+                The manifest write-off process is complete. The updated status has been synchronized with E-Customs. You can now proceed with cargo clearance.
               </p>
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4">
             <button 
-              onClick={() => updateState({ status: 'idle', rNumber: '', port: '', vesselName: '', deferredPaymentAccount: '', manifestData: null, failedFields: [], calculatedFine: 0, amendmentRef: null, paymentRef: null })}
+              onClick={() => updateState({ status: 'idle', rNumber: '', blNumber: '', port: '', vesselName: '', deferredPaymentAccount: '', manifestData: null, failedFields: [], calculatedFine: 0, amendmentRef: null, paymentRef: null })}
               className="btn-primary flex-1"
             >
               Start New Request

@@ -37,7 +37,7 @@ export const S5Success: React.FC = () => {
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">BL Number:</span>
-              <span className="font-bold text-gray-900">{state.manifestData?.blNumber || 'BL-998877'}</span>
+              <span className="font-bold text-gray-900">{state.blNumber || state.manifestData?.blNumber || 'BL-998877'}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Written Off:</span>
@@ -74,7 +74,7 @@ export const S5Success: React.FC = () => {
 
           <div className="flex flex-col gap-4 w-full max-w-sm">
             <button 
-              onClick={() => updateState({ status: 'idle', rNumber: '', port: '', vesselName: '', deferredPaymentAccount: '' })}
+              onClick={() => updateState({ status: 'idle', rNumber: '', blNumber: '', port: '', vesselName: '', deferredPaymentAccount: '' })}
               className="btn-ghost w-full"
             >
               Write Off Another Manifest

@@ -52,7 +52,7 @@ export const S9Rejected: React.FC = () => {
               Contact Customs Support
             </button>
             <button 
-              onClick={() => updateState({ status: 'idle' })}
+              onClick={() => updateState({ status: 'idle', rNumber: '', blNumber: '', port: '', vesselName: '', deferredPaymentAccount: '' })}
               className="btn-ghost w-full"
             >
               Back to Dashboard
