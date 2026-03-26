@@ -15,6 +15,7 @@ interface PendingRequest {
   reason: string;
   date: string;
   documents: UploadedDocument[];
+  isManualWriteOff?: boolean;
 }
 
 const initialPendingData: PendingRequest[] = [
@@ -61,6 +62,15 @@ const initialPendingData: PendingRequest[] = [
       { name: 'Weight_Bridge_Ticket.jpeg', type: 'jpeg', url: '#' },
       { name: 'Export_Invoice.pdf', type: 'pdf', url: '#' }
     ]
+  },
+  { 
+    id: '5', 
+    formNumber: 'M-2024-1001', 
+    applicant: 'Ocean Logistics Pvt Ltd', 
+    reason: 'Manual Write-Off Request (E-Valuator BL not found)', 
+    date: '13 Oct 2024',
+    documents: [],
+    isManualWriteOff: true
   },
 ];
 
@@ -261,13 +271,15 @@ export const OfficerPending: React.FC = () => {
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap text-center">
                         <div className="flex items-center justify-center gap-2">
-                          <button 
-                            onClick={() => setViewingDocsId(record.id)}
-                            className="inline-flex items-center justify-center w-8 h-8 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300 transition-colors"
-                            title="View Details & Documents"
-                          >
-                            <Eye size={16} />
-                          </button>
+                          {!record.isManualWriteOff && (
+                            <button 
+                              onClick={() => setViewingDocsId(record.id)}
+                              className="inline-flex items-center justify-center w-8 h-8 rounded bg-blue-100 text-blue-700 hover:bg-blue-200 border border-blue-300 transition-colors"
+                              title="View Details & Documents"
+                            >
+                              <Eye size={16} />
+                            </button>
+                          )}
                           <button 
                             onClick={() => handleAccept(record.id)}
                             className="inline-flex items-center justify-center w-8 h-8 rounded bg-green-100 text-green-700 hover:bg-green-200 border border-green-300 transition-colors"
