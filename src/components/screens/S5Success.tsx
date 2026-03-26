@@ -6,12 +6,13 @@ import { motion } from 'motion/react';
 export const S5Success: React.FC = () => {
   const { state, updateState } = useAppContext();
   const [showDetails, setShowDetails] = useState(false);
+  const manifestRegNo = React.useMemo(() => `${new Date().getFullYear()} ${Math.floor(Math.random() * 900 + 100)}`, []);
 
   return (
     <div className="max-w-2xl mx-auto px-4">
       <div className="bg-white rounded-xl shadow-sm border border-[var(--primary)] overflow-hidden">
-        <div className="bg-[var(--primary)] text-white p-4 font-bold text-lg text-center">
-          Manifest Successfully Written Off
+        <div id="manifestRegNoHeader" className="bg-[var(--primary)] text-white p-4 font-bold text-lg text-center">
+          Manifest Reg.No
         </div>
         <div className="p-8 flex flex-col items-center text-center">
           <motion.div
@@ -21,7 +22,7 @@ export const S5Success: React.FC = () => {
           >
             <CheckCircle2 className="w-20 h-20 text-[var(--success)] mb-6" />
           </motion.div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Write-Off Complete</h2>
+          <h2 id="manifestRegNoValue" className="text-2xl font-bold text-gray-900 mb-2">{manifestRegNo}</h2>
           <p className="text-gray-600 mb-8 max-w-md">
             All 7 validation fields matched the E-Valuator record.
           </p>
@@ -44,8 +45,13 @@ export const S5Success: React.FC = () => {
               <span className="font-bold text-gray-900">{new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
             </div>
             <div className="flex justify-between pt-3 border-t border-blue-300 mt-3">
-              <span className="text-gray-600">Reference:</span>
-              <span className="font-bold text-[var(--primary)] text-base">WO-{new Date().getFullYear()}-{Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}</span>
+              <span className="text-gray-600">Vessel Name:</span>
+              <span className="font-bold text-[var(--primary)] text-base">{state.vesselName || state.manifestData?.vessel || 'MV OCEAN TRADER'}</span>
+            </div>
+            <div className="bg-amber-50 border border-amber-200 rounded p-3 mt-2">
+              <p className="text-amber-800 font-bold text-[15px] text-center italic">
+                Vessel Name and Manifest Reg.No must be exact for successful write off
+              </p>
             </div>
           </div>
 
