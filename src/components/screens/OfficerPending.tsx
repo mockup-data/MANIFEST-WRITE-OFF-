@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { Check, X, AlertCircle, Eye, FileText, Image as ImageIcon, Download, ExternalLink } from 'lucide-react';
+import { db } from '../../firebase';
+import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
 
 interface UploadedDocument {
   name: string;
@@ -18,71 +20,52 @@ interface PendingRequest {
   isManualWriteOff?: boolean;
 }
 
-const initialPendingData: PendingRequest[] = [
-  { 
-    id: '1', 
-    formNumber: 'R-2024-12455', 
-    applicant: 'Ocean Logistics Pvt Ltd', 
-    reason: 'Late submission due to vessel delay', 
-    date: '12 Oct 2024',
-    documents: [
-      { name: 'Manifest_Copy.pdf', type: 'pdf', url: '#' },
-      { name: 'Vessel_Delay_Notice.jpeg', type: 'jpeg', url: '#' },
-      { name: 'Authorization_Letter.pdf', type: 'pdf', url: '#' }
-    ]
-  },
-  { 
-    id: '2', 
-    formNumber: 'T-2024-2946', 
-    applicant: 'Maldives Shipping Co.', 
-    reason: 'Amendment of Consignee details', 
-    date: '12 Oct 2024',
-    documents: [
-      { name: 'BL_Original.pdf', type: 'pdf', url: '#' },
-      { name: 'Consignee_ID_Copy.jpeg', type: 'jpeg', url: '#' }
-    ]
-  },
-  { 
-    id: '3', 
-    formNumber: 'R-2024-1247', 
-    applicant: 'Global Freight Forwarders', 
-    reason: 'Write-off request for bulk cargo', 
-    date: '11 Oct 2024',
-    documents: [
-      { name: 'Cargo_Declaration.pdf', type: 'pdf', url: '#' }
-    ]
-  },
-  { 
-    id: '4', 
-    formNumber: 'E-2024-2948', 
-    applicant: 'Island Traders', 
-    reason: 'Amendment of Gross Weight', 
-    date: '10 Oct 2024',
-    documents: [
-      { name: 'Weight_Bridge_Ticket.jpeg', type: 'jpeg', url: '#' },
-      { name: 'Export_Invoice.pdf', type: 'pdf', url: '#' }
-    ]
-  },
-  { 
-    id: '5', 
-    formNumber: 'M-2024-1001', 
-    applicant: 'Ocean Logistics Pvt Ltd', 
-    reason: 'Manual Write-Off Request (E-Valuator BL not found)', 
-    date: '13 Oct 2024',
-    documents: [],
-    isManualWriteOff: true
-  },
-];
-
 export const OfficerPending: React.FC = () => {
-  const { updateState } = useAppContext();
-  const [pendingData, setPendingData] = useState<PendingRequest[]>(initialPendingData);
+  const { state, updateState } = useAppContext();
+  const [pendingData, setPendingData] = useState<PendingRequest[]>([]);
   const [rejectingId, setRejectingId] = useState<string | null>(null);
   const [viewingDocsId, setViewingDocsId] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState('');
 
-  const handleAccept = (id: string) => {
-    setPendingData(prev => prev.filter(req => req.id !== id));
+  useEffect(() => {
+    const q = query(collection(db, 'amendments'), where('status', '==', 'pending'));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const requests: PendingRequest[] = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        requests.push({
+          id: doc.id,
+          formNumber: doc.id,
+          applicant: data.brokerUid || 'Unknown Applicant',
+          reason: data.serviceTypes?.join(', ') || 'Amendment Request',
+          date: data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString() : (data.createdAt ? new Date(data.createdAt).toLocaleDateString() : 'Unknown Date'),
+          isManualWriteOff: data.serviceTypes?.includes('manual_write_off'),
+          documents: [
+            { name: 'Application_Form.pdf', type: 'pdf', url: '#' },
+            { name: 'Original_Manifest.pdf', type: 'pdf', url: '#' },
+            { name: 'Original_BL.pdf', type: 'pdf', url: '#' }
+          ]
+        });
+      });
+      setPendingData(requests);
+    }, (error) => {
+      console.error('Firestore Error: ', error);
+    });
+
+    return () => unsub();
+  }, []);
+
+  const handleAccept = async (id: string) => {
+    try {
+      await updateDoc(doc(db, 'amendments', id), {
+        status: 'approved',
+        officerUid: state.userId,
+        updatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error approving request:', error);
+      alert('Failed to approve request.');
+    }
   };
 
   const handleRejectClick = (id: string) => {
@@ -90,16 +73,21 @@ export const OfficerPending: React.FC = () => {
     setRejectReason('');
   };
 
-  const confirmReject = (id: string) => {
+  const confirmReject = async (id: string) => {
     if (!rejectReason.trim()) return;
-    const record = pendingData.find(req => req.id === id);
-    updateState({ 
-      status: 'rejected', 
-      rejectionReason: rejectReason,
-      amendmentRef: record?.formNumber || null
-    });
-    setPendingData(prev => prev.filter(req => req.id !== id));
-    setRejectingId(null);
+    
+    try {
+      await updateDoc(doc(db, 'amendments', id), {
+        status: 'rejected',
+        rejectionReason: rejectReason,
+        officerUid: state.userId,
+        updatedAt: new Date().toISOString()
+      });
+      setRejectingId(null);
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+      alert('Failed to reject request.');
+    }
   };
 
   const cancelReject = () => {

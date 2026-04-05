@@ -8,6 +8,8 @@ import { S4FieldMismatch } from './screens/S4FieldMismatch';
 import { S5Success } from './screens/S5Success';
 import { S6TechnicalError } from './screens/S6TechnicalError';
 import { S6bECustomsManifestNotRegistered } from './screens/S6bECustomsManifestNotRegistered';
+import { S6cAsycudaNotReceived } from './screens/S6cAsycudaNotReceived';
+import { S6dLateManifest } from './screens/S6dLateManifest';
 import { S7AmendmentForm } from './screens/S7AmendmentForm';
 import { S8PendingReview } from './screens/S8PendingReview';
 import { S9Rejected } from './screens/S9Rejected';
@@ -16,11 +18,13 @@ import { S11Finalized } from './screens/S11Finalized';
 import { S12BLCancel } from './screens/S12BLCancel';
 import { OfficerHistory } from './screens/OfficerHistory';
 import { OfficerPending } from './screens/OfficerPending';
+import { Login } from './screens/Login';
 
 export const ScreenContainer: React.FC = () => {
   const { state } = useAppContext();
 
   switch (state.status) {
+    case 'login': return <Login />;
     case 'idle': return <S1Entry />;
     case 'loading': return <S2Validating />;
     case 'bl_not_found': return <S3BLNotFound />;
@@ -29,6 +33,8 @@ export const ScreenContainer: React.FC = () => {
     case 'write_off_success': return <S5Success />;
     case 'ecustoms_error': return <S6TechnicalError />;
     case 'ecustoms_manifest_not_registered': return <S6bECustomsManifestNotRegistered />;
+    case 'asycuda_not_received': return <S6cAsycudaNotReceived />;
+    case 'late_manifest': return <S6dLateManifest />;
     case 'amendment_form': return <S7AmendmentForm />;
     case 'pending_review': return <S8PendingReview />;
     case 'rejected': return <S9Rejected />;

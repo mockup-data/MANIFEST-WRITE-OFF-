@@ -8,8 +8,9 @@ const TIER_2_FIELDS = ['Consignee', 'Gross Weight', 'Container Number', 'Goods D
 export const S7AmendmentForm: React.FC = () => {
   const { state, updateState } = useAppContext();
   
-  const [serviceTypes, setServiceTypes] = useState<string[]>([]);
+  const [serviceTypes, setServiceTypes] = useState<string[]>(state.prefilledServiceTypes || []);
   const [amendmentTypes, setAmendmentTypes] = useState<string[]>([]);
+  const [lateBLCount, setLateBLCount] = useState<number>(1);
   const [contentBefore, setContentBefore] = useState('');
   const [contentAfter, setContentAfter] = useState('');
   const [reason, setReason] = useState('');
@@ -49,7 +50,7 @@ export const S7AmendmentForm: React.FC = () => {
 
   const calculateFine = () => {
     let fine = 0;
-    if (serviceTypes.includes('late_manifest')) fine += 3000;
+    if (serviceTypes.includes('late_manifest')) fine += 3000 + (lateBLCount * 1000);
     
     const hasTier2 = amendmentTypes.some(t => TIER_2_FIELDS.includes(t) || ['Package Code', 'Packs Number', 'BL Number'].includes(t));
     const hasTier1 = amendmentTypes.some(t => TIER_1_FIELDS.includes(t) || ['Exporter', 'Carrier'].includes(t));
@@ -62,19 +63,48 @@ export const S7AmendmentForm: React.FC = () => {
 
   const fine = calculateFine();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!declarationChecked || !files.manifest || !files.bl || !files.applicationForm || !ffAccount.trim()) return;
     
-    updateState({ 
-      status: 'pending_review',
-      amendmentRef: `AMD-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}`,
-      calculatedFine: fine,
-      manifestData: {
-        ...state.manifestData,
-        ffAccount: ffAccount.trim()
-      }
-    });
+    try {
+      const amendmentRef = `AMD-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}`;
+      const amendmentId = amendmentRef;
+      
+      const { db } = await import('../../firebase');
+      const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
+      
+      await setDoc(doc(db, 'amendments', amendmentId), {
+        amendmentRef,
+        brokerUid: state.userId,
+        rNumber: state.rNumber,
+        blNumber: state.blNumber,
+        serviceTypes,
+        amendmentTypes,
+        lateBLCount,
+        contentBefore,
+        contentAfter,
+        reason,
+        calculatedFine: fine,
+        ffAccount: ffAccount.trim(),
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
+
+      updateState({ 
+        status: 'pending_review',
+        amendmentRef,
+        calculatedFine: fine,
+        prefilledServiceTypes: serviceTypes,
+        manifestData: {
+          ...state.manifestData,
+          ffAccount: ffAccount.trim()
+        }
+      });
+    } catch (error) {
+      console.error('Error submitting amendment:', error);
+      alert('Failed to submit amendment application. Please try again.');
+    }
   };
 
   const handleFileChange = (key: string, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -166,9 +196,24 @@ export const S7AmendmentForm: React.FC = () => {
                 <input type="checkbox" checked={serviceTypes.includes('late_manifest')} onChange={() => handleServiceTypeChange('late_manifest')} className="w-5 h-5 text-red-600 rounded border-red-300 focus:ring-red-600" />
                 <div className="flex-1 flex justify-between items-center">
                   <span className="font-medium text-red-900">Late Submission of Manifest</span>
-                  <span className="text-xs font-bold bg-red-200 text-red-800 px-2 py-1 rounded">MVR 3,000 Fine</span>
+                  <span className="text-xs font-bold bg-red-200 text-red-800 px-2 py-1 rounded">MVR 3,000 Base Fine</span>
                 </div>
               </label>
+              {serviceTypes.includes('late_manifest') && (
+                <div className="ml-8 p-4 border border-red-200 bg-white rounded-lg flex items-center justify-between">
+                  <label htmlFor="lateBLCount" className="text-sm font-medium text-gray-700">
+                    Number of Late BLs (MVR 1,000 each)
+                  </label>
+                  <input
+                    type="number"
+                    id="lateBLCount"
+                    min="1"
+                    value={lateBLCount}
+                    onChange={(e) => setLateBLCount(Math.max(1, parseInt(e.target.value) || 1))}
+                    className="w-24 px-3 py-1 border border-gray-300 rounded focus:ring-red-500 focus:border-red-500 outline-none"
+                  />
+                </div>
+              )}
             </div>
           </section>
 
@@ -205,6 +250,44 @@ export const S7AmendmentForm: React.FC = () => {
                 ))}
               </div>
             </div>
+
+            {amendmentTypes.length > 0 && (
+              <div className="mt-6 space-y-4">
+                <div>
+                  <label htmlFor="contentBefore" className="block text-sm font-medium text-gray-700 mb-1">Content Before Amendment</label>
+                  <textarea
+                    id="contentBefore"
+                    value={contentBefore}
+                    onChange={(e) => setContentBefore(e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none transition-all bg-white"
+                    rows={3}
+                    placeholder="Describe the current incorrect details..."
+                  />
+                </div>
+                <div>
+                  <label htmlFor="contentAfter" className="block text-sm font-medium text-gray-700 mb-1">Content After Amendment</label>
+                  <textarea
+                    id="contentAfter"
+                    value={contentAfter}
+                    onChange={(e) => setContentAfter(e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none transition-all bg-white"
+                    rows={3}
+                    placeholder="Describe the correct details..."
+                  />
+                </div>
+                <div>
+                  <label htmlFor="reason" className="block text-sm font-medium text-gray-700 mb-1">Reason for Amendment</label>
+                  <textarea
+                    id="reason"
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] outline-none transition-all bg-white"
+                    rows={3}
+                    placeholder="Explain why this amendment is necessary..."
+                  />
+                </div>
+              </div>
+            )}
           </section>
 
 
@@ -272,7 +355,7 @@ export const S7AmendmentForm: React.FC = () => {
           </section>
 
           <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200">
-            <button type="button" onClick={() => updateState({ status: 'field_mismatch' })} className="btn-ghost">Cancel</button>
+            <button type="button" onClick={() => updateState({ status: 'idle', rNumber: '', blNumber: '', port: '', vesselName: '', deferredPaymentAccount: '', manifestData: null, failedFields: [], calculatedFine: 0, amendmentRef: null, paymentRef: null, prefilledServiceTypes: undefined, rejectionReason: undefined })} className="btn-ghost">Cancel</button>
             <button type="button" className="btn-ghost">Save as Draft</button>
             <button 
               type="submit" 

@@ -1,0 +1,115 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function isOfficer() {
+      return isAuthenticated() && getUserData().role == 'officer';
+    }
+    
+    function isBroker() {
+      return isAuthenticated() && getUserData().role == 'broker';
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        (getUserData().role == 'admin' || 
+         (request.auth.token.email == "ahmedsahaf2004@gmail.com" && request.auth.token.email_verified == true));
+    }
+    
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'createdAt']) &&
+             data.uid is string && data.uid.size() > 0 && data.uid.size() < 100 &&
+             data.email is string && data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") &&
+             data.role in ['officer', 'broker', 'admin'] &&
+             (!('name' in data) || (data.name is string && data.name.size() < 100)) &&
+             (!('organization' in data) || (data.organization is string && data.organization.size() < 100));
+    }
+    
+    function isValidAmendment(data) {
+      return data.keys().hasAll(['amendmentRef', 'brokerUid', 'rNumber', 'blNumber', 'status', 'createdAt']) &&
+             data.amendmentRef is string && data.amendmentRef.size() > 0 && data.amendmentRef.size() < 50 &&
+             data.brokerUid is string && data.brokerUid.size() > 0 && data.brokerUid.size() < 100 &&
+             data.rNumber is string && data.rNumber.size() > 0 && data.rNumber.size() < 50 &&
+             data.blNumber is string && data.blNumber.size() > 0 && data.blNumber.size() < 50 &&
+             data.status in ['pending', 'approved', 'rejected', 'paid', 'finalized'] &&
+             (!('serviceTypes' in data) || data.serviceTypes is list) &&
+             (!('amendmentTypes' in data) || data.amendmentTypes is list) &&
+             (!('calculatedFine' in data) || data.calculatedFine is number) &&
+             (!('ffAccount' in data) || (data.ffAccount is string && data.ffAccount.size() < 50)) &&
+             (!('officerUid' in data) || (data.officerUid is string && data.officerUid.size() < 100)) &&
+             (!('rejectionReason' in data) || (data.rejectionReason is string && data.rejectionReason.size() < 500));
+    }
+    
+    function isValidWriteOff(data) {
+      return data.keys().hasAll(['writeOffRef', 'rNumber', 'blNumber', 'finalizedAt']) &&
+             data.writeOffRef is string && data.writeOffRef.size() > 0 && data.writeOffRef.size() < 50 &&
+             data.rNumber is string && data.rNumber.size() > 0 && data.rNumber.size() < 50 &&
+             data.blNumber is string && data.blNumber.size() > 0 && data.blNumber.size() < 50 &&
+             (!('officerUid' in data) || (data.officerUid is string && data.officerUid.size() < 100)) &&
+             (!('brokerUid' in data) || (data.brokerUid is string && data.brokerUid.size() < 100));
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+    
+    match /users/{userId} {
+      // Users can read their own data, officers/admins can read all users
+      allow read: if isOwner(userId) || isOfficer() || isAdmin();
+      
+      // Only admins can create/update roles, or users can create their own profile as a broker
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && 
+                    ((isOwner(userId) && request.resource.data.role == 'broker') || isAdmin());
+                    
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
+                    ((isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin()) &&
+                    request.resource.data.uid == resource.data.uid;
+    }
+    
+    match /amendments/{amendmentId} {
+      // Brokers can read their own amendments, officers can read all
+      allow read: if (isAuthenticated() && resource.data.brokerUid == request.auth.uid) || isOfficer() || isAdmin();
+      
+      // Brokers can create amendments
+      allow create: if isBroker() && isValidAmendment(request.resource.data) && 
+                    request.resource.data.brokerUid == request.auth.uid &&
+                    request.resource.data.status == 'pending';
+                    
+      // Officers can update status, brokers can update if pending (e.g., adding payment)
+      allow update: if isAuthenticated() && isValidAmendment(request.resource.data) &&
+                    request.resource.data.brokerUid == resource.data.brokerUid &&
+                    request.resource.data.amendmentRef == resource.data.amendmentRef &&
+                    ((isBroker() && resource.data.brokerUid == request.auth.uid && resource.data.status in ['pending', 'approved']) || 
+                     isOfficer() || isAdmin());
+    }
+    
+    match /writeoffs/{writeOffId} {
+      // Brokers can read their own write-offs, officers can read all
+      allow read: if (isAuthenticated() && resource.data.brokerUid == request.auth.uid) || isOfficer() || isAdmin();
+      
+      // Officers can create write-offs
+      allow create: if (isOfficer() || isAdmin()) && isValidWriteOff(request.resource.data);
+      
+      // Write-offs are immutable
+      allow update: if false;
+    }
+  }
+}

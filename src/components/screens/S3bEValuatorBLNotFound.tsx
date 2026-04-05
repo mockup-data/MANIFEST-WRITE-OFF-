@@ -1,12 +1,48 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
-import { SearchX } from 'lucide-react';
+import { SearchX, Loader2 } from 'lucide-react';
+import { db } from '../../firebase';
+import { collection, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 export const S3bEValuatorBLNotFound: React.FC = () => {
   const { state, updateState } = useAppContext();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Mock Tradian status for demonstration (could be 'Stored', 'Amendment', or 'Registered')
   const tradianStatus = 'Registered';
+
+  const handleManualWriteOff = async () => {
+    setIsSubmitting(true);
+    try {
+      const newAmendmentRef = doc(collection(db, 'amendments')).id;
+      
+      await setDoc(doc(db, 'amendments', newAmendmentRef), {
+        rNumber: state.rNumber,
+        blNumber: state.blNumber,
+        port: state.port,
+        vesselName: state.vesselName,
+        deferredPaymentAccount: state.deferredPaymentAccount,
+        brokerUid: state.userId,
+        status: 'pending',
+        serviceTypes: ['manual_write_off'],
+        calculatedFine: 0,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      updateState({ 
+        status: 'pending_review',
+        amendmentRef: newAmendmentRef,
+        calculatedFine: 0,
+        prefilledServiceTypes: ['manual_write_off']
+      });
+    } catch (error) {
+      console.error('Error submitting manual write-off request:', error);
+      alert('Failed to submit request. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="max-w-2xl mx-auto px-4">
@@ -56,14 +92,23 @@ export const S3bEValuatorBLNotFound: React.FC = () => {
 
           <div className="flex flex-col gap-4 w-full max-w-md">
             <button 
-              onClick={() => updateState({ status: 'pending_review' })}
-              className="btn-primary w-full"
+              onClick={handleManualWriteOff}
+              disabled={isSubmitting}
+              className="btn-primary w-full flex items-center justify-center gap-2"
               style={{ fontFamily: 'Arial', borderWidth: '1px' }}
             >
-              Apply for Manual Write OFF
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  Submitting Request...
+                </>
+              ) : (
+                'Apply for Manual Write OFF'
+              )}
             </button>
             <button 
-              onClick={() => updateState({ status: 'idle' })}
+              onClick={() => updateState({ status: 'idle', rNumber: '', blNumber: '', port: '', vesselName: '', deferredPaymentAccount: '', manifestData: null, failedFields: [], calculatedFine: 0, amendmentRef: null, paymentRef: null, prefilledServiceTypes: undefined, rejectionReason: undefined })}
+              disabled={isSubmitting}
               className="btn-ghost w-full"
             >
               Back to Search

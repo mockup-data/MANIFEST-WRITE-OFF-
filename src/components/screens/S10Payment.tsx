@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { CreditCard, Wallet, AlertCircle, CheckCircle } from 'lucide-react';
+import { db } from '../../firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 
 export const S10Payment: React.FC = () => {
   const { state, updateState } = useAppContext();
@@ -16,9 +18,21 @@ export const S10Payment: React.FC = () => {
       // Mock API call
       await new Promise(resolve => setTimeout(resolve, 2000));
       
+      const paymentRef = `PAY-${Math.floor(Math.random() * 1000000)}`;
+
+      if (state.amendmentRef) {
+        const docRef = doc(db, 'amendments', state.amendmentRef);
+        await updateDoc(docRef, {
+          status: 'paid',
+          paymentRef: paymentRef,
+          paidAt: new Date().toISOString()
+        });
+      }
+
       // Simulate success
-      updateState({ status: 'finalizing', paymentRef: `PAY-${Math.floor(Math.random() * 1000000)}` });
+      updateState({ status: 'finalizing', paymentRef });
     } catch (err) {
+      console.error(err);
       setError('Payment processing failed. Please try again or contact support.');
     } finally {
       setIsProcessing(false);
@@ -137,7 +151,7 @@ export const S10Payment: React.FC = () => {
               )}
             </button>
             <button 
-              onClick={() => updateState({ status: 'idle' })}
+              onClick={() => updateState({ status: 'idle', rNumber: '', blNumber: '', port: '', vesselName: '', deferredPaymentAccount: '', manifestData: null, failedFields: [], calculatedFine: 0, amendmentRef: null, paymentRef: null, prefilledServiceTypes: undefined, rejectionReason: undefined })}
               disabled={isProcessing}
               className="btn-ghost flex-1"
             >

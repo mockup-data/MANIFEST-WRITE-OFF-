@@ -55,7 +55,7 @@ export const S11Finalized: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8 w-full text-left">
+          <div className={`grid grid-cols-1 ${(state.calculatedFine !== undefined && state.calculatedFine > 0) ? 'sm:grid-cols-2' : ''} gap-6 mb-8 w-full text-left`}>
             <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
               <div className="flex items-center gap-3 mb-4">
                 <FileText className="text-[var(--primary)]" size={24} />
@@ -69,7 +69,7 @@ export const S11Finalized: React.FC = () => {
                 <div>
                   <p className="text-sm text-gray-500">Status</p>
                   <p className="font-medium text-[var(--success)] flex items-center gap-1">
-                    <CheckCircle size={16} /> Approved & Paid
+                    <CheckCircle size={16} /> {(state.calculatedFine !== undefined && state.calculatedFine > 0) ? 'Approved & Paid' : 'Approved'}
                   </p>
                 </div>
                 <div>
@@ -81,28 +81,30 @@ export const S11Finalized: React.FC = () => {
               </div>
             </div>
 
-            <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-              <div className="flex items-center gap-3 mb-4">
-                <CheckCircle className="text-[var(--success)]" size={24} />
-                <h3 className="text-lg font-bold text-gray-900">Payment Summary</h3>
+            {(state.calculatedFine !== undefined && state.calculatedFine > 0) ? (
+              <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
+                <div className="flex items-center gap-3 mb-4">
+                  <CheckCircle className="text-[var(--success)]" size={24} />
+                  <h3 className="text-lg font-bold text-gray-900">Payment Summary</h3>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-sm text-gray-500">Payment Reference</p>
+                    <p className="font-mono font-medium text-gray-900">{state.paymentRef || 'PAY-847291'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Amount Paid</p>
+                    <p className="font-bold text-gray-900">
+                      MVR {state.calculatedFine?.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '1,000.00'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500">Method</p>
+                    <p className="font-medium text-gray-900">Customs Pre-Payment Account</p>
+                  </div>
+                </div>
               </div>
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-gray-500">Payment Reference</p>
-                  <p className="font-mono font-medium text-gray-900">{state.paymentRef || 'PAY-847291'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Amount Paid</p>
-                  <p className="font-bold text-gray-900">
-                    MVR {state.calculatedFine?.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '1,000.00'}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-500">Method</p>
-                  <p className="font-medium text-gray-900">Customs Pre-Payment Account</p>
-                </div>
-              </div>
-            </div>
+            ) : null}
           </div>
 
           <div className="w-full max-w-md mb-8">
@@ -130,7 +132,7 @@ export const S11Finalized: React.FC = () => {
 
           <div className="flex flex-col gap-4 w-full max-w-sm">
             <button 
-              onClick={() => updateState({ status: 'idle', rNumber: '', blNumber: '', port: '', vesselName: '', deferredPaymentAccount: '', manifestData: null, failedFields: [], calculatedFine: 0, amendmentRef: null, paymentRef: null })}
+              onClick={() => updateState({ status: 'idle', rNumber: '', blNumber: '', port: '', vesselName: '', deferredPaymentAccount: '', manifestData: null, failedFields: [], calculatedFine: 0, amendmentRef: null, paymentRef: null, prefilledServiceTypes: undefined, rejectionReason: undefined })}
               className="btn-ghost w-full"
             >
               Start New Request

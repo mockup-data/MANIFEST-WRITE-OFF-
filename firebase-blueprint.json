@@ -1,0 +1,146 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A user of the Customs Portal (Officer or Broker)",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID"
+        },
+        "email": {
+          "type": "string",
+          "format": "email"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["officer", "broker"],
+          "description": "Role of the user"
+        },
+        "name": {
+          "type": "string"
+        },
+        "organization": {
+          "type": "string",
+          "description": "The organization or FF account for brokers"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "role", "createdAt"]
+    },
+    "AmendmentApplication": {
+      "title": "Amendment Application",
+      "description": "An application submitted by a broker for review by an officer",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "amendmentRef": {
+          "type": "string"
+        },
+        "brokerUid": {
+          "type": "string"
+        },
+        "rNumber": {
+          "type": "string"
+        },
+        "blNumber": {
+          "type": "string"
+        },
+        "serviceTypes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "amendmentTypes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "calculatedFine": {
+          "type": "number"
+        },
+        "ffAccount": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "approved", "rejected", "paid", "finalized"]
+        },
+        "officerUid": {
+          "type": "string",
+          "description": "UID of the officer who reviewed the application"
+        },
+        "rejectionReason": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["amendmentRef", "brokerUid", "rNumber", "blNumber", "status", "createdAt"]
+    },
+    "WriteOffHistory": {
+      "title": "Write-Off History",
+      "description": "A record of finalized write-offs",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "writeOffRef": {
+          "type": "string"
+        },
+        "rNumber": {
+          "type": "string"
+        },
+        "blNumber": {
+          "type": "string"
+        },
+        "officerUid": {
+          "type": "string"
+        },
+        "brokerUid": {
+          "type": "string"
+        },
+        "finalizedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["writeOffRef", "rNumber", "blNumber", "finalizedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
+      },
+      "description": "Collection of users"
+    },
+    "/amendments/{amendmentId}": {
+      "schema": {
+        "$ref": "#/entities/AmendmentApplication"
+      },
+      "description": "Collection of amendment applications"
+    },
+    "/writeoffs/{writeOffId}": {
+      "schema": {
+        "$ref": "#/entities/WriteOffHistory"
+      },
+      "description": "Collection of finalized write-offs"
+    }
+  }
+}

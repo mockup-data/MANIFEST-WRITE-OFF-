@@ -1,10 +1,10 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 
 export type AppStatus = 
-  | 'idle' | 'loading' | 'bl_not_found' | 'evaluator_bl_not_found' | 'field_mismatch' 
+  | 'login' | 'idle' | 'loading' | 'bl_not_found' | 'evaluator_bl_not_found' | 'field_mismatch' 
   | 'write_off_success' | 'ecustoms_error' | 'ecustoms_manifest_not_registered' | 'amendment_form' | 'pending_review' 
   | 'rejected' | 'payment_ready' | 'finalizing' | 'finalized' | 'bl_cancel_form'
-  | 'officer_history' | 'officer_pending';
+  | 'officer_history' | 'officer_pending' | 'asycuda_not_received' | 'late_manifest';
 
 export interface FieldResult {
   field: string;
@@ -48,6 +48,9 @@ export interface AppState {
   writeOffRef: string | null;
   finalizedAt: string | null;
   certificateUrl: string | null;
+  userRole: 'officer' | 'broker' | null;
+  userId: string | null;
+  prefilledServiceTypes?: string[];
 }
 
 interface AppContextType {
@@ -58,7 +61,7 @@ interface AppContextType {
 }
 
 const initialState: AppState = {
-  status: 'idle',
+  status: 'login',
   rNumber: '',
   blNumber: '',
   port: '',
@@ -76,6 +79,8 @@ const initialState: AppState = {
   writeOffRef: null,
   finalizedAt: null,
   certificateUrl: null,
+  userRole: null,
+  userId: null,
 };
 
 const AppContext = createContext<AppContextType | undefined>(undefined);

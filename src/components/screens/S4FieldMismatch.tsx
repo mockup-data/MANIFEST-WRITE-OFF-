@@ -1,6 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAppContext, FieldResult } from '../../context/AppContext';
 import { CheckCircle, XCircle } from 'lucide-react';
+import { db } from '../../firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const mockFields: FieldResult[] = [
   { field: 'Gross Weight', manifestValue: '1200 kg', evaluatorValue: '1200 kg', match: true, fineTier: 1000 },
@@ -14,6 +16,7 @@ const mockFields: FieldResult[] = [
 
 export const S4FieldMismatch: React.FC = () => {
   const { state, updateState } = useAppContext();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fields = state.fieldResults.length > 0 ? state.fieldResults : mockFields;
   const failedFields = fields.filter(f => !f.match);
@@ -24,6 +27,49 @@ export const S4FieldMismatch: React.FC = () => {
       updateState({ fieldResults: fields, failedFields, calculatedFine });
     }
   }, []);
+
+  const handleManualWriteOff = async () => {
+    if (!state.userId) {
+      alert('You must be logged in to apply for manual write-off.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const amendmentRef = `AMD-${new Date().getFullYear()}-${Math.floor(Math.random() * 1000000).toString().padStart(6, '0')}`;
+      const { doc, setDoc } = await import('firebase/firestore');
+      
+      await setDoc(doc(db, 'amendments', amendmentRef), {
+        amendmentRef,
+        rNumber: state.rNumber || 'R-2024-0001',
+        blNumber: state.blNumber || state.manifestData?.blNumber || 'BL-998877',
+        port: state.port || 'Malé Commercial Harbour',
+        vesselName: state.vesselName || state.manifestData?.vessel || 'MV OCEAN TRADER',
+        serviceTypes: ['manual_write_off'],
+        amendmentTypes: failedFields.map(f => f.field),
+        lateBLCount: 0,
+        contentBefore: failedFields.map(f => `${f.field}: ${f.manifestValue}`).join('\n'),
+        contentAfter: failedFields.map(f => `${f.field}: ${f.evaluatorValue}`).join('\n'),
+        reason: 'Manual Write-Off requested due to field mismatch.',
+        calculatedFine: calculatedFine,
+        status: 'pending',
+        brokerUid: state.userId,
+        createdAt: serverTimestamp(),
+      });
+
+      updateState({ 
+        status: 'pending_review', 
+        amendmentRef: amendmentRef,
+        calculatedFine: calculatedFine,
+        prefilledServiceTypes: ['manual_write_off']
+      });
+    } catch (error) {
+      console.error('Error submitting manual write-off:', error);
+      alert('Failed to submit request. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto px-4">
@@ -79,11 +125,12 @@ export const S4FieldMismatch: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-center justify-end gap-4">
             <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
               <button 
-                onClick={() => updateState({ status: 'pending_review' })}
-                className="text-[var(--primary)] hover:underline text-sm font-medium px-4 py-2 text-center border border-[var(--primary)] rounded-lg"
+                onClick={handleManualWriteOff}
+                disabled={isSubmitting}
+                className="text-[var(--primary)] hover:underline text-sm font-medium px-4 py-2 text-center border border-[var(--primary)] rounded-lg disabled:opacity-50"
                 style={{ fontFamily: 'Arial', borderWidth: '1px' }}
               >
-                Apply for Manual Write OFF
+                {isSubmitting ? 'Submitting...' : 'Apply for Manual Write OFF'}
               </button>
               <button 
                 onClick={() => updateState({ status: 'amendment_form' })}

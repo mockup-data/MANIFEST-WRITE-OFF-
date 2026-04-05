@@ -51,7 +51,7 @@ export const S12BLCancel: React.FC = () => {
             </p>
 
             <button 
-              onClick={() => updateState({ status: 'idle' })}
+              onClick={() => updateState({ status: 'idle', rNumber: '', blNumber: '', port: '', vesselName: '', deferredPaymentAccount: '', manifestData: null, failedFields: [], calculatedFine: 0, amendmentRef: null, paymentRef: null, prefilledServiceTypes: undefined, rejectionReason: undefined })}
               className="btn-primary w-full max-w-sm"
             >
               Back to Dashboard

@@ -1,21 +1,37 @@
 import React, { useEffect, useState } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { Clock, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { db } from '../../firebase';
+import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
 
 export const S8PendingReview: React.FC = () => {
   const { state, updateState } = useAppContext();
   const [showSummary, setShowSummary] = useState(false);
   const [isApproved, setIsApproved] = useState(false);
+  const [amendmentData, setAmendmentData] = useState<any>(null);
 
-  // Poll for status
+  // Poll for status from Firestore
   useEffect(() => {
-    const timer = setInterval(() => {
-      // Mocking status change after 5 seconds for demo
-      setIsApproved(true);
-    }, 5000);
+    if (!state.amendmentRef) return;
 
-    return () => clearInterval(timer);
-  }, []);
+    const unsub = onSnapshot(doc(db, 'amendments', state.amendmentRef), (doc) => {
+      if (doc.exists()) {
+        const data = doc.data();
+        setAmendmentData(data);
+        if (data.status === 'approved') {
+          setIsApproved(true);
+        } else if (data.status === 'rejected') {
+          updateState({ status: 'rejected', rejectionReason: data.rejectionReason });
+        } else if (data.status === 'paid' || data.status === 'finalized') {
+          updateState({ status: 'finalized', paymentRef: data.paymentRef });
+        }
+      }
+    }, (error) => {
+      console.error('Firestore Error: ', error);
+    });
+
+    return () => unsub();
+  }, [state.amendmentRef, updateState]);
 
   return (
     <div className="max-w-4xl mx-auto px-4">
@@ -32,7 +48,7 @@ export const S8PendingReview: React.FC = () => {
             <div className="text-left sm:text-right">
               <p className="text-sm text-gray-500 mb-1">Submitted</p>
               <p className="font-medium text-gray-900">
-                {new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                {amendmentData?.createdAt ? new Date(amendmentData.createdAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </p>
             </div>
           </div>
@@ -84,12 +100,30 @@ export const S8PendingReview: React.FC = () => {
               <CheckCircle className="w-6 h-6 text-[var(--success)] shrink-0 mt-0.5" />
               <div>
                 <h3 className="text-lg font-bold text-green-900 mb-1">Application Approved</h3>
-                <p className="text-green-800 mb-4">Your amendment application has been reviewed and approved by a Customs Officer. Please proceed to payment to finalize the write-off.</p>
+                <p className="text-green-800 mb-4">
+                  Your amendment application has been reviewed and approved by a Customs Officer. 
+                  {amendmentData?.calculatedFine > 0 ? ' Please proceed to payment to finalize the write-off.' : ' Please proceed to finalize the write-off.'}
+                </p>
                 <button 
-                  onClick={() => updateState({ status: 'payment_ready' })}
+                  onClick={async () => {
+                    if (amendmentData?.calculatedFine > 0) {
+                      updateState({ status: 'payment_ready' });
+                    } else {
+                      try {
+                        // Update Firestore to finalized
+                        await updateDoc(doc(db, 'amendments', state.amendmentRef!), {
+                          status: 'finalized'
+                        });
+                        updateState({ status: 'finalizing' });
+                      } catch (error) {
+                        console.error('Error finalizing:', error);
+                        alert('Failed to finalize. Please try again.');
+                      }
+                    }
+                  }}
                   className="btn-primary"
                 >
-                  Proceed to Payment
+                  {amendmentData?.calculatedFine > 0 ? 'Proceed to Payment' : 'Finalize Write-Off'}
                 </button>
               </div>
             </div>
@@ -127,16 +161,16 @@ export const S8PendingReview: React.FC = () => {
                   <div className="sm:col-span-2">
                     <p className="text-sm text-gray-500 mb-1">Amended Fields</p>
                     <div className="flex flex-wrap gap-2 mt-2">
-                      {state.failedFields?.map(f => (
-                        <span key={f.field} className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm border border-gray-200">
-                          {f.field}
+                      {amendmentData?.amendmentTypes?.map((f: string) => (
+                        <span key={f} className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm border border-gray-200">
+                          {f}
                         </span>
                       )) || <span className="text-gray-500 italic">No fields selected</span>}
                     </div>
                   </div>
                   <div className="sm:col-span-2">
                     <p className="text-sm text-gray-500 mb-1">Calculated Fine</p>
-                    <p className="font-bold text-[var(--danger)]">MVR {state.calculatedFine?.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) || '1,000.00'}</p>
+                    <p className="font-bold text-[var(--danger)]">MVR {amendmentData?.calculatedFine !== undefined ? amendmentData.calculatedFine.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '1,000.00'}</p>
                   </div>
                 </div>
               </div>
@@ -144,16 +178,8 @@ export const S8PendingReview: React.FC = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4">
-            {!isApproved && (
-              <button 
-                onClick={() => setIsApproved(true)} // Mocking manual check
-                className="btn-ghost flex-1"
-              >
-                Check Status
-              </button>
-            )}
             <button 
-              onClick={() => updateState({ status: 'idle' })}
+              onClick={() => updateState({ status: 'idle', rNumber: '', blNumber: '', port: '', vesselName: '', deferredPaymentAccount: '', manifestData: null, failedFields: [], calculatedFine: 0, amendmentRef: null, paymentRef: null, prefilledServiceTypes: undefined, rejectionReason: undefined })}
               className="btn-ghost flex-1"
             >
               Back to Dashboard

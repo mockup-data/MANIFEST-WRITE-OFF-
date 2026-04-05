@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { useAppContext, AppStatus } from '../context/AppContext';
 
 const statuses: AppStatus[] = [
-  'idle', 'loading', 'bl_not_found', 'evaluator_bl_not_found', 'field_mismatch',
+  'login', 'idle', 'loading', 'bl_not_found', 'evaluator_bl_not_found', 'field_mismatch',
   'write_off_success', 'ecustoms_error', 'ecustoms_manifest_not_registered', 'amendment_form', 'pending_review',
   'rejected', 'payment_ready', 'finalizing', 'finalized', 'bl_cancel_form',
-  'officer_history', 'officer_pending'
+  'officer_history', 'officer_pending', 'asycuda_not_received', 'late_manifest'
 ];
 
 export const DevControls: React.FC = () => {

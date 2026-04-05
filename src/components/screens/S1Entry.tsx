@@ -157,15 +157,17 @@ export const S1Entry: React.FC = () => {
               Search & Validate
             </button>
           </form>
-          <div className="mt-12 pt-8 border-t border-gray-200 text-center">
-            <p className="text-sm text-gray-500 mb-4">Authorized Personnel Only</p>
-            <button 
-              onClick={() => updateState({ status: 'officer_pending' })}
-              className="inline-flex items-center gap-2 text-sm font-medium text-[var(--primary)] hover:text-blue-900 transition-colors"
-            >
-              Access Officer Portal <ArrowRight size={16} />
-            </button>
-          </div>
+          {state.userRole === 'officer' && (
+            <div className="mt-12 pt-8 border-t border-gray-200 text-center">
+              <p className="text-sm text-gray-500 mb-4">Authorized Personnel Only</p>
+              <button 
+                onClick={() => updateState({ status: 'officer_pending' })}
+                className="inline-flex items-center gap-2 text-sm font-medium text-[var(--primary)] hover:text-blue-900 transition-colors"
+              >
+                Access Officer Portal <ArrowRight size={16} />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

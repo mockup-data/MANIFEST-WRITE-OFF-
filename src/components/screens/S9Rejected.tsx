@@ -40,19 +40,21 @@ export const S9Rejected: React.FC = () => {
           </p>
 
           <div className="flex flex-col gap-4 w-full max-w-sm">
-            <button 
-              onClick={() => updateState({ status: 'amendment_form' })}
-              className="btn-primary w-full"
-            >
-              Re-submit Application
-            </button>
+            {!state.prefilledServiceTypes?.includes('manual_write_off') && (
+              <button 
+                onClick={() => updateState({ status: 'amendment_form' })}
+                className="btn-primary w-full"
+              >
+                Re-submit Application
+              </button>
+            )}
             <button 
               className="btn-ghost w-full"
             >
               Contact Customs Support
             </button>
             <button 
-              onClick={() => updateState({ status: 'idle', rNumber: '', blNumber: '', port: '', vesselName: '', deferredPaymentAccount: '' })}
+              onClick={() => updateState({ status: 'idle', rNumber: '', blNumber: '', port: '', vesselName: '', deferredPaymentAccount: '', manifestData: null, failedFields: [], calculatedFine: 0, amendmentRef: null, paymentRef: null, prefilledServiceTypes: undefined, rejectionReason: undefined })}
               className="btn-ghost w-full"
             >
               Back to Dashboard

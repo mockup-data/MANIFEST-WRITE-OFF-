@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { Search, FileText, CheckCircle, XCircle, Clock, Edit3, Eye, X, Image as ImageIcon, Download, ExternalLink } from 'lucide-react';
+import { db } from '../../firebase';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 
 interface UploadedDocument {
   name: string;
@@ -16,94 +18,54 @@ interface HistoryRecord {
   status: 'accepted' | 'rejected' | 'late' | 'amendment';
   documents: UploadedDocument[];
   reason: string;
+  isManualWriteOff?: boolean;
 }
-
-const mockHistoryData: HistoryRecord[] = [
-  { 
-    id: '1', 
-    formNumber: 'R-2024-12345', 
-    applicant: 'Ocean Logistics Pvt Ltd', 
-    date: '12 Oct 2024', 
-    status: 'accepted',
-    reason: 'Standard write-off request',
-    documents: [{ name: 'Manifest_Final.pdf', type: 'pdf', url: '#' }]
-  },
-  { 
-    id: '2', 
-    formNumber: 'R-2024-8827', 
-    applicant: 'Maldives Shipping Co.', 
-    date: '12 Oct 2024', 
-    status: 'rejected',
-    reason: 'Incorrect package count',
-    documents: [{ name: 'Correction_Letter.pdf', type: 'pdf', url: '#' }]
-  },
-  { 
-    id: '3', 
-    formNumber: 'T-2024-4432', 
-    applicant: 'Global Freight Forwarders', 
-    date: '11 Oct 2024', 
-    status: 'late',
-    reason: 'Late submission due to system outage',
-    documents: [{ name: 'Log_Report.jpeg', type: 'jpeg', url: '#' }]
-  },
-  { 
-    id: '4', 
-    formNumber: 'E-2024-9912', 
-    applicant: 'Ocean Logistics Pvt Ltd', 
-    date: '10 Oct 2024', 
-    status: 'amendment',
-    reason: 'Weight correction',
-    documents: [{ name: 'Weight_Slip.jpeg', type: 'jpeg', url: '#' }]
-  },
-  { 
-    id: '5', 
-    formNumber: 'R-2024-10023', 
-    applicant: 'Island Traders', 
-    date: '09 Oct 2024', 
-    status: 'accepted',
-    reason: 'Bulk cargo write-off',
-    documents: [{ name: 'Declaration.pdf', type: 'pdf', url: '#' }]
-  },
-  { 
-    id: '6', 
-    formNumber: 'R-2024-7721', 
-    applicant: 'Maldives Shipping Co.', 
-    date: '08 Oct 2024', 
-    status: 'accepted',
-    reason: 'Regular shipment',
-    documents: [{ name: 'Invoice.pdf', type: 'pdf', url: '#' }]
-  },
-  { 
-    id: '7', 
-    formNumber: 'T-2024-3321', 
-    applicant: 'Global Freight Forwarders', 
-    date: '08 Oct 2024', 
-    status: 'rejected',
-    reason: 'Missing documentation',
-    documents: []
-  },
-  { 
-    id: '8', 
-    formNumber: 'E-2024-8811', 
-    applicant: 'Island Traders', 
-    date: '07 Oct 2024', 
-    status: 'amendment',
-    reason: 'Consignee name change',
-    documents: [{ name: 'ID_Copy.jpeg', type: 'jpeg', url: '#' }]
-  },
-];
 
 export const OfficerHistory: React.FC = () => {
   const { updateState } = useAppContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [viewingDocsId, setViewingDocsId] = useState<string | null>(null);
+  const [historyData, setHistoryData] = useState<HistoryRecord[]>([]);
 
-  const filteredData = mockHistoryData.filter(record => 
+  useEffect(() => {
+    const q = query(collection(db, 'amendments'), where('status', 'in', ['approved', 'rejected', 'paid', 'finalized']));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const records: HistoryRecord[] = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        let status: 'accepted' | 'rejected' | 'late' | 'amendment' = 'amendment';
+        if (data.status === 'approved' || data.status === 'paid' || data.status === 'finalized') status = 'accepted';
+        if (data.status === 'rejected') status = 'rejected';
+
+        records.push({
+          id: doc.id,
+          formNumber: doc.id,
+          applicant: data.brokerUid || 'Unknown Applicant',
+          date: data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString() : (data.createdAt ? new Date(data.createdAt).toLocaleDateString() : 'Unknown Date'),
+          status: status,
+          reason: data.rejectionReason || data.serviceTypes?.join(', ') || 'Amendment Request',
+          isManualWriteOff: data.serviceTypes?.includes('manual_write_off'),
+          documents: data.serviceTypes?.includes('manual_write_off') ? [] : [
+            { name: 'Application_Form.pdf', type: 'pdf', url: '#' },
+            { name: 'Original_Manifest.pdf', type: 'pdf', url: '#' },
+            { name: 'Original_BL.pdf', type: 'pdf', url: '#' }
+          ]
+        });
+      });
+      setHistoryData(records);
+    }, (error) => {
+      console.error('Firestore Error: ', error);
+    });
+
+    return () => unsub();
+  }, []);
+
+  const filteredData = historyData.filter(record => 
     record.formNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
     record.applicant.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const viewingRecord = mockHistoryData.find(r => r.id === viewingDocsId);
+  const viewingRecord = historyData.find(r => r.id === viewingDocsId);
 
   const getStatusBadge = (status: string) => {
     switch (status) {

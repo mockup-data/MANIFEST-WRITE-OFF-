@@ -59,7 +59,7 @@ export const S6TechnicalError: React.FC = () => {
 
           <div className="flex flex-col gap-4 w-full max-w-sm">
             <button 
-              onClick={() => updateState({ status: 'idle' })}
+              onClick={() => updateState({ status: 'idle', rNumber: '', blNumber: '', port: '', vesselName: '', deferredPaymentAccount: '', manifestData: null, failedFields: [], calculatedFine: 0, amendmentRef: null, paymentRef: null, prefilledServiceTypes: undefined, rejectionReason: undefined })}
               className="btn-ghost w-full"
             >
               Back to Search
